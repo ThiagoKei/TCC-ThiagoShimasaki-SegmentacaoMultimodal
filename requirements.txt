@@ -1,0 +1,22 @@
+torch>=2.0
+torchvision
+numpy
+scipy
+pandas
+scikit-learn
+opencv-python
+Pillow
+matplotlib
+vedo
+vtk
+gco-wrapper
+pycocotools
+fvcore
+iopath
+omegaconf
+yacs
+cloudpickle
+tabulate
+termcolor
+# detectron2: instalar a partir de https://github.com/facebookresearch/detectron2
+# 02_detector_2d/train_maskrcnn_dentex.py (Kaggle): também sam2 e huggingface_hub

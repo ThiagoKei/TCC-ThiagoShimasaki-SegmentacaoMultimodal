@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Segmentação e landmarks</title>
+<style>
+:root{--fundo:#f4f2ee;--painel:#ffffffd9;--texto:#22211f;--sutil:#6b6862}
+@media (prefers-color-scheme:dark){:root{--fundo:#1b1a18;--painel:#252421d9;--texto:#ebe8e2;--sutil:#9d9990}}
+html,body{margin:0;height:100%;background:var(--fundo);color:var(--texto);font:13px/1.4 system-ui,sans-serif;overflow:hidden}
+canvas{display:block;width:100vw;height:100vh}
+.caixa{position:absolute;background:var(--painel);border-radius:8px;padding:10px 12px;margin:10px}
+#info{top:0;left:0;max-width:340px}
+#leg{bottom:0;right:0;display:grid;grid-template-columns:repeat(8,auto);gap:3px 8px;font-size:11px}
+#leg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:3px;vertical-align:-1px}
+h1{font-size:14px;margin:0 0 6px}
+label{display:block;margin-top:4px}
+.sutil{color:var(--sutil);font-size:12px}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="caixa" id="info">
+  <h1>/*TITULO*/</h1>
+  <div class="sutil">Malha decimada (8.000 células) colorida por dente; a malha completa está em segmentacao.ply.
+  Arraste para girar, role para aproximar.</div>
+  <label><input type="checkbox" id="b_lm" checked> landmarks (pontos)</label>
+  <label><input type="checkbox" id="b_ex" checked> eixos longos (IE)</label>
+  <div class="sutil" style="margin-top:6px">
+    <span style="color:#e74c3c">●</span> mesial <span style="color:#3498db">●</span> distal
+    <span style="color:#f1c40f">●</span> facial <span style="color:#9b59b6">●</span> interno
+    <span style="color:#1abc9c">●</span> externo ○ cúspide
+  </div>
+</div>
+<div class="caixa" id="leg"></div>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+ "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from "three";
+import {OrbitControls} from "three/addons/controls/OrbitControls.js";
+const D = /*DADOS*/null;
+const dec = (s, T) => { const b = Uint8Array.from(atob(s), c => c.charCodeAt(0)); return new T(b.buffer); };
+const v = dec(D.v, Float32Array), f = dec(D.f, Uint32Array), nf = f.length / 3;
+const pos = new Float32Array(nf * 9), col = new Float32Array(nf * 9);
+for (let t = 0; t < nf; t++) for (let k = 0; k < 3; k++) {
+  const a = f[3*t+k]; pos.set([v[3*a], v[3*a+1], v[3*a+2]], 9*t+3*k);
+  col.set(D.c[t].map(x => x / 255), 9*t+3*k);
+}
+const g = new THREE.BufferGeometry();
+g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+g.computeVertexNormals();
+const malha = new THREE.Mesh(g, new THREE.MeshStandardMaterial({vertexColors:true, roughness:0.75, flatShading:true, side:THREE.DoubleSide}));
+const cena = new THREE.Scene();
+cena.add(malha);
+cena.add(new THREE.HemisphereLight(0xffffff, 0x666666, 1.6));
+const luz = new THREE.DirectionalLight(0xffffff, 1.2); cena.add(luz);
+const grupoLm = new THREE.Group(), grupoEx = new THREE.Group();
+const esf = new THREE.SphereGeometry(0.45, 12, 8);
+for (const p of D.lm) {
+  const m = new THREE.Mesh(esf, new THREE.MeshBasicMaterial({color: p.cor}));
+  m.position.set(...p.p); grupoLm.add(m);
+}
+for (const e of D.eixos) {
+  const o = new THREE.Vector3(...e.o), d = new THREE.Vector3(...e.d).normalize();
+  grupoEx.add(new THREE.ArrowHelper(d.clone().negate(), o.clone().addScaledVector(d, 6), 14, 0x222222, 2, 1));
+}
+cena.add(grupoLm, grupoEx);
+document.getElementById("b_lm").onchange = e => grupoLm.visible = e.target.checked;
+document.getElementById("b_ex").onchange = e => grupoEx.visible = e.target.checked;
+document.getElementById("leg").innerHTML = D.ordem.map((x, k) => `<span><i style="background:${D.paleta[k]}"></i>${x}</span>`).join("");
+const canvas = document.getElementById("c");
+const r = new THREE.WebGLRenderer({canvas, antialias:true});
+r.setPixelRatio(Math.min(devicePixelRatio, 2));
+r.setClearColor(new THREE.Color(getComputedStyle(document.body).backgroundColor));
+const cam = new THREE.PerspectiveCamera(35, 1, 0.5, 5000);
+const ctrl = new OrbitControls(cam, canvas); ctrl.enableDamping = true;
+g.computeBoundingSphere();
+const bs = g.boundingSphere;
+cam.position.copy(bs.center).add(new THREE.Vector3(0, 0, bs.radius * 3)); ctrl.target.copy(bs.center); ctrl.update();
+function tam(){ r.setSize(innerWidth, innerHeight, false); cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); }
+addEventListener("resize", tam); tam();
+(function loop(){ requestAnimationFrame(loop); ctrl.update(); luz.position.copy(cam.position); r.render(cena, cam); })();
+</script>
+</body>
+</html>

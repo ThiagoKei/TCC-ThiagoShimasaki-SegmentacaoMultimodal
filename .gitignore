@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Credenciais
+.env
+*.env
+
+# Dados de pacientes, pesos e saídas (nunca versionar)
+*.pt
+*.pth
+*.ckpt
+*.npz
+*.npy
+*.vtp
+*.stl
+*.ply
+*.obj
+*.blend
+*.zip
+*.tgz
+*.csv
+*.xlsx
+*.json
+!07_inferencia/**/*.json
+*.png
+*.jpg
+*.jpeg
+*.log
+runs*/
+pesos/
+dados/
+listas/
+panoramicas/
+brutos/
